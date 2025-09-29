@@ -40,22 +40,24 @@ const HomeScreen: React.FC = () => {
   const sosScale = React.useRef(new Animated.Value(1)).current;
   const sosRipple = React.useRef(new Animated.Value(0)).current;
   const sosHoldTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  const sosRippleAnimation = React.useRef<Animated.CompositeAnimation | null>(null);
   
   // Handle SOS animation
   React.useEffect(() => {
     if (sosActivated) {
+      console.log('SOS Activated, starting animations');
       // Trigger success animation
       Animated.sequence([
         Animated.timing(sosScale, {
           toValue: 1.2,
           duration: 300,
-          easing: Easing.bounce,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(sosScale, {
           toValue: 1,
           duration: 300,
-          easing: Easing.bounce,
+          easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         })
       ]).start(() => {
@@ -64,31 +66,43 @@ const HomeScreen: React.FC = () => {
       });
     } else {
       // Reset animations when not active
+      console.log('SOS Deactivated, resetting animations');
       sosScale.setValue(1);
       sosRipple.setValue(0);
       sosProgressAnim.setValue(0);
+      
+      // Stop any ongoing animation
+      if (sosRippleAnimation.current) {
+        sosRippleAnimation.current.stop();
+        sosRippleAnimation.current = null;
+      }
     }
   }, [sosActivated]);
 
   const startPulsingAnimation = () => {
     // Only start pulsing if still activated
     if (sosActivated) {
-      Animated.loop(
+      console.log('Starting pulsing animation');
+      // Create and save animation reference for later stopping
+      sosRippleAnimation.current = Animated.loop(
         Animated.sequence([
           Animated.timing(sosRipple, {
             toValue: 1,
             duration: 1000,
             easing: Easing.out(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false, // Changed to false for better compatibility
           }),
           Animated.timing(sosRipple, {
             toValue: 0,
             duration: 1000,
             easing: Easing.in(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: false, // Changed to false for better compatibility
           })
-        ])
-      ).start();
+        ]), 
+        { iterations: -1 } // Explicitly set to loop infinitely
+      );
+      
+      sosRippleAnimation.current.start();
     }
   };
 
@@ -96,6 +110,7 @@ const HomeScreen: React.FC = () => {
   const handleSOSPressIn = () => {
     if (sosActivated) return; // Don't restart if already activated
     
+    console.log('SOS Press started');
     setSosHoldStart(Date.now());
     setSosProgress(0);
     
@@ -105,9 +120,14 @@ const HomeScreen: React.FC = () => {
       toValue: 100,
       duration: 3000, // 3 seconds to activate
       useNativeDriver: false,
+      easing: Easing.linear,
     }).start();
     
     // Set timeout for activation after 3 seconds
+    if (sosHoldTimeout.current) {
+      clearTimeout(sosHoldTimeout.current);
+    }
+    
     sosHoldTimeout.current = setTimeout(() => {
       activateSOS();
     }, 3000);
@@ -116,6 +136,8 @@ const HomeScreen: React.FC = () => {
   // Cancel SOS if released too early
   const handleSOSPressOut = () => {
     if (sosActivated) return; // Don't cancel if already activated
+    
+    console.log('SOS Press released early');
     
     // Clear the timeout
     if (sosHoldTimeout.current) {
@@ -134,11 +156,12 @@ const HomeScreen: React.FC = () => {
   
   // Activate SOS after successful hold
   const activateSOS = () => {
+    console.log('SOS ACTIVATED - Emergency alert triggered!');
     setSosActivated(true);
-    console.log('SOS pressed - Emergency alert triggered!');
     
     // After 10 seconds, reset the SOS button
     setTimeout(() => {
+      console.log('SOS auto-resetting after 10 seconds');
       setSosActivated(false);
     }, 10000);
   };
@@ -413,6 +436,7 @@ const HomeScreen: React.FC = () => {
         activeOpacity={0.7}
         onPressIn={handleSOSPressIn}
         onPressOut={handleSOSPressOut}
+        delayLongPress={3000}
       >
         {/* Ripple animation */}
         {sosActivated && (
@@ -421,14 +445,14 @@ const HomeScreen: React.FC = () => {
               styles.sosRipple,
               {
                 opacity: sosRipple.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0.6, 0]
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0.6, 0.3, 0]
                 }),
                 transform: [
                   {
                     scale: sosRipple.interpolate({
                       inputRange: [0, 1],
-                      outputRange: [1, 1.8]
+                      outputRange: [1, 2.0]
                     })
                   }
                 ]
@@ -440,12 +464,8 @@ const HomeScreen: React.FC = () => {
         <Animated.View style={[styles.sosOuterCircle, {
           transform: [{ scale: sosScale }],
         }]}>
-          <Animated.View style={[styles.sosMiddleCircle, {
-            transform: [{ scale: sosScale }],
-          }]}>
-            <Animated.View style={[styles.sosInnerCircle, {
-              transform: [{ scale: sosScale }],
-            }]}>
+          <Animated.View style={styles.sosMiddleCircle}>
+            <Animated.View style={styles.sosInnerCircle}>
               {sosActivated ? (
                 <Text style={[styles.sosText, styles.sosActiveText]}>SOS</Text>
               ) : (
@@ -852,11 +872,12 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 0, 0, 0.3)',
-    top: -10,
-    left: -10,
-    backgroundColor: 'transparent',
+    borderWidth: 4,
+    borderColor: 'rgba(255, 20, 20, 0.8)',
+    top: -15,
+    left: -15,
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    alignSelf: 'center',
   },
   sosButton: {
     alignItems: 'center',
@@ -905,20 +926,26 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     position: 'absolute',
-    bottom: -8,
+    bottom: -10,
     left: 0,
     right: 0,
-    height: 4,
+    height: 6,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
     width: '80%',
     alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 3,
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 3,
   },
   sosActiveText: {
     color: 'rgba(255, 255, 255, 1)',
