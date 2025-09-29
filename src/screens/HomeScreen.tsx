@@ -13,6 +13,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import HomeIcon from '../../assets/images/home.svg';
+import MapIcon from '../../assets/images/map.svg';
+import MeshIcon from '../../assets/images/mesh.svg';
+import TranslateIcon from '../../assets/images/translate.svg';
+import NotificationIcon from '../../assets/notification.svg';
+import ProfileIcon from '../../assets/profile.svg';
+import CallIcon from '../../assets/call.svg';
+import DropIcon from '../../assets/images/drop.svg';
+import SearchIcon from '../../assets/images/search.svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -52,6 +61,15 @@ const HomeScreen: React.FC = () => {
   // State for location image
   const [currentLocation, setCurrentLocation] = React.useState('Jaipur');
   
+  // Function to get location image based on current location
+  const getLocationImage = () => {
+    if (currentLocation === 'Jaipur') {
+      return require('../../assets/images/jaipur.png');
+    } else {
+      return require('../../assets/images/udaipur.jpg');
+    }
+  };
+  
   // Function to change location
   const handleLocationChange = (location: string) => {
     setCurrentLocation(location);
@@ -79,8 +97,12 @@ const HomeScreen: React.FC = () => {
         {/* Location Image with Header Controls */}
         <View style={styles.locationImageContainer}>
           {/* Image placeholder - would be dynamically changed based on location */}
-          <View style={styles.locationImagePlaceholder}>
-            <Text style={styles.locationImageText}>{currentLocation}</Text>
+          <Image 
+            source={getLocationImage()} 
+            style={styles.locationImage} 
+            resizeMode="cover"
+          />
+          <View style={styles.locationOverlay}>
           </View>
           
           {/* Header Controls Overlay */}
@@ -91,32 +113,40 @@ const HomeScreen: React.FC = () => {
               onPress={() => handleLocationChange(currentLocation === 'Jaipur' ? 'Udaipur' : 'Jaipur')}
               activeOpacity={0.6}
             >
-              <Text style={{fontSize: 16}}>📍</Text>
-              <Text style={styles.locationSelectorText}>{currentLocation}</Text>
-              <Text style={{fontSize: 14, marginLeft: 4, color: 'rgba(251, 131, 40, 1)'}}>▼</Text>
+              <Text style={styles.locationPin}>📍</Text>
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationCity}>{currentLocation}</Text>
+                <Text style={styles.locationState}>Rajasthan</Text>
+              </View>
+              <DropIcon width={12} height={12} fill="#FB8328" />
             </TouchableOpacity>
             
             {/* Right Side Controls */}
             <View style={styles.rightControls}>
               <TouchableOpacity style={styles.iconButton} onPress={handleNotificationPress}>
-                <Text style={styles.controlIcon}>🔔</Text>
+                <NotificationIcon width={25} height={25}  />
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconButton} onPress={handleProfilePress}>
-                <Text style={styles.controlIcon}>👤</Text>
+                <ProfileIcon width={40} height={40}  />
               </TouchableOpacity>
             </View>
           </View>
         </View>
-        {/* Main Content Container with padding */}
-        <View style={styles.mainContent}>
-          {/* Search Bar */}
-          <View style={styles.searchBar}>
+        
+        {/* Search Bar - positioned to overlay the image */}
+        <View style={styles.searchBarOverlay}>
           <View style={styles.searchContainer}>
             <View style={[styles.searchInput, styles.fullWidthSearch]}>
-              <Text style={styles.searchPlaceholder}>🔍 Search Destination</Text>
+              <View style={styles.searchIconContainer}>
+                <SearchIcon width={16} height={16} fill="#757575" />
+                <Text style={styles.searchPlaceholder}>Search Destination</Text>
+              </View>
             </View>
           </View>
         </View>
+        
+        {/* Main Content Container with padding */}
+        <View style={styles.mainContent}>
 
         {/* Nearby Emergency Contacts */}
         <View style={styles.nearby}>
@@ -132,24 +162,21 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.iconText}>🚔</Text>
               </View>
               <Text style={styles.emergencyText}>Police Station, Sanganer</Text>
-              <View style={styles.avatarPlaceholder} />
               <TouchableOpacity style={styles.callButton}>
-                <Text style={styles.callIcon}>📞</Text>
+                <CallIcon width={20} height={20} fill="#FFFFFF" />
               </TouchableOpacity>
             </TouchableOpacity>
 
             {/* Tourist Department */}
             <TouchableOpacity 
               style={styles.emergencyItem}
-              onPress={() => handleEmergencyCall('Tourist Department')}
             >
               <View style={styles.emergencyIcon}>
                 <Text style={styles.iconText}>🏛️</Text>
               </View>
               <Text style={styles.emergencyText}>Tourist Department, Jaipur</Text>
-              <View style={styles.avatarPlaceholder} />
               <TouchableOpacity style={styles.callButton}>
-                <Text style={styles.callIcon}>📞</Text>
+                <CallIcon width={20} height={20} fill="#FFFFFF" />
               </TouchableOpacity>
             </TouchableOpacity>
 
@@ -162,9 +189,8 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.iconText}>🏥</Text>
               </View>
               <Text style={styles.emergencyText}>SMS Hospital, Jaipur</Text>
-              <View style={styles.avatarPlaceholder} />
               <TouchableOpacity style={styles.callButton}>
-                <Text style={styles.callIcon}>📞</Text>
+                <CallIcon width={20} height={20} fill="#FFFFFF" />
               </TouchableOpacity>
             </TouchableOpacity>
           </View>
@@ -178,28 +204,24 @@ const HomeScreen: React.FC = () => {
             {/* Incident Type */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Incident Type</Text>
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Write your Incident"
-                  placeholderTextColor="rgba(161, 155, 155, 1)"
-                />
-              </View>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Write your Incident"
+                placeholderTextColor="rgba(100, 100, 100, 0.8)"
+              />
             </View>
 
             {/* Description */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Description</Text>
-              <View style={styles.textAreaContainer}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder="Description about Incident"
-                  placeholderTextColor="rgba(161, 155, 155, 1)"
-                  multiline
-                  numberOfLines={6}
-                  textAlignVertical="top"
-                />
-              </View>
+              <TextInput
+                style={styles.textArea}
+                placeholder="Description about Incident"
+                placeholderTextColor="rgba(100, 100, 100, 0.8)"
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
             </View>
 
             {/* Submit Button */}
@@ -232,13 +254,13 @@ const HomeScreen: React.FC = () => {
       <View style={styles.navBar}>
         {/* Home */}
         <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIcon}>🏠</Text>
+          <HomeIcon width={24} height={24} fill="#FB8328" />
           <Text style={[styles.navText, styles.activeNavText]}>Home</Text>
         </TouchableOpacity>
 
         {/* Map */}
         <TouchableOpacity style={styles.navItem} onPress={handleMapPress}>
-          <Text style={styles.navIcon}>🗺️</Text>
+          <MapIcon width={24} height={24} fill="#000000" />
           <Text style={styles.navText}>Map</Text>
         </TouchableOpacity>
 
@@ -247,13 +269,13 @@ const HomeScreen: React.FC = () => {
 
         {/* Mesh */}
         <TouchableOpacity style={styles.navItem} onPress={handleMeshPress}>
-          <Text style={styles.navIcon}>📶</Text>
+          <MeshIcon width={24} height={24} fill="#000000" />
           <Text style={styles.navText}>Mesh</Text>
         </TouchableOpacity>
 
         {/* Translate */}
         <TouchableOpacity style={styles.navItem} onPress={handleTranslatePress}>
-          <Text style={styles.navIcon}>🌐</Text>
+          <TranslateIcon width={24} height={24} fill="#000000" />
           <Text style={styles.navText}>Translate</Text>
         </TouchableOpacity>
       </View>
@@ -283,9 +305,29 @@ const styles = StyleSheet.create({
   },
   locationImageContainer: {
     width: '100%',
-    height: 200,
+    height: 250,
     backgroundColor: 'rgba(200, 200, 200, 1)',
     position: 'relative',
+    overflow: 'hidden',borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  locationImage: {
+    width: '100%',
+    height: '100%',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
+  },
+  locationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   locationImagePlaceholder: {
     width: '100%',
@@ -293,16 +335,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(180, 180, 180, 1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-  },
-  locationImageText: {
-    color: 'white',
-    fontSize: 32,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 5,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   headerControls: {
     position: 'absolute',
@@ -316,33 +350,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 45,
     zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-    borderBottomLeftRadius: 15,
-    borderBottomRightRadius: 15,
   },
   locationSelector: {
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 22,
-    maxWidth: 160,
-    shadowColor: 'rgba(0, 0, 0, 0.4)',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.9,
-    shadowRadius: 5,
-    elevation: 6,
+    maxWidth: 100,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(251, 131, 40, 0.3)',
+    justifyContent: 'space-between',
   },
-  locationSelectorText: {
+  locationPin: {
+    fontSize: 30,
+  },
+  locationTextContainer: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  locationCity: {
     fontFamily: 'Poppins-Bold',
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '700',
-    color: 'rgba(0, 0, 0, 0.8)',
-    marginLeft: 2,
+    color: 'rgba(0, 0, 0, 0.9)',
+    lineHeight: 20,
+  },
+  locationState: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: 13,
+    color: 'rgba(0, 0, 0, 0.7)',
+    lineHeight: 16,
+  },
+  locationDropdownIcon: {
+    fontSize: 14,
+    color: 'rgb(0, 0, 0)',
   },
   rightControls: {
     flexDirection: 'row',
@@ -352,10 +389,10 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 40,
     height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
     shadowColor: 'rgba(0, 0, 0, 0.3)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.8,
@@ -371,6 +408,12 @@ const styles = StyleSheet.create({
   bgPlaceholder: {
     height: 10,
     backgroundColor: 'transparent',
+  },
+  searchBarOverlay: {
+    position: 'relative',
+    marginTop: -25,
+    marginBottom: 20,
+    zIndex: 5,
   },
   searchBar: {
     marginTop: 15,
@@ -392,9 +435,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 16,
     maxWidth: '85%', // Reduce width to 85% of the container
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 5,
   },
   fullWidthSearch: {
     width: '85%', // Override with specific width instead of 100%
+  },
+  searchIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   searchPlaceholder: {
     color: 'rgba(161, 155, 155, 1)',
@@ -432,10 +485,11 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     gap: 12,
+    justifyContent: 'space-between',
   },
   emergencyIcon: {
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -459,7 +513,17 @@ const styles = StyleSheet.create({
     borderRadius: 18.5,
   },
   callButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(251, 131, 40, 1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
   },
   callIcon: {
     fontSize: 20,
@@ -478,12 +542,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   inputContainer: {
-    backgroundColor: 'rgba(230, 224, 224, 1)',
+    backgroundColor: 'transparent',
     borderRadius: 20,
-    padding: 16,
+    padding: 0,
   },
   textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
+    backgroundColor: 'rgba(230, 224, 224, 1)',
     borderRadius: 20,
     padding: 12,
     fontFamily: 'Poppins-Bold',
@@ -492,12 +556,12 @@ const styles = StyleSheet.create({
     color: 'rgba(0, 0, 0, 1)',
   },
   textAreaContainer: {
-    backgroundColor: 'rgba(230, 224, 224, 1)',
+    backgroundColor: 'transparent',
     borderRadius: 20,
-    padding: 16,
+    padding: 0,
   },
   textArea: {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
+    backgroundColor: 'rgba(230, 224, 224, 1)',
     borderRadius: 20,
     padding: 12,
     fontFamily: 'Poppins-Bold',
