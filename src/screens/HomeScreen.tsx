@@ -11,6 +11,7 @@ import {
   Image,
   Animated,
   Easing,
+  Vibration,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -114,6 +115,9 @@ const HomeScreen: React.FC = () => {
     setSosHoldStart(Date.now());
     setSosProgress(0);
     
+    // Give a short vibration to indicate button press started
+    Vibration.vibrate(50);
+    
     // Reset and start the progress animation
     sosProgressAnim.setValue(0);
     Animated.timing(sosProgressAnim, {
@@ -127,6 +131,13 @@ const HomeScreen: React.FC = () => {
     if (sosHoldTimeout.current) {
       clearTimeout(sosHoldTimeout.current);
     }
+    
+    // Add a subtle vibration at the halfway point (1.5 seconds)
+    setTimeout(() => {
+      if (sosHoldStart !== null) { // Only vibrate if still pressing
+        Vibration.vibrate(50);
+      }
+    }, 1500);
     
     sosHoldTimeout.current = setTimeout(() => {
       activateSOS();
@@ -145,6 +156,9 @@ const HomeScreen: React.FC = () => {
       sosHoldTimeout.current = null;
     }
     
+    // Cancel any ongoing vibrations
+    Vibration.cancel();
+    
     // Reset progress
     setSosProgress(0);
     setSosHoldStart(null);
@@ -159,10 +173,16 @@ const HomeScreen: React.FC = () => {
     console.log('SOS ACTIVATED - Emergency alert triggered!');
     setSosActivated(true);
     
+    // Trigger strong haptic feedback - pattern creates a more urgent vibration
+    // Vibration pattern: vibrate for 500ms, pause for 100ms, vibrate for 500ms, etc.
+    Vibration.vibrate([0, 500, 100, 500, 100, 500, 100, 800], false);
+    
     // After 10 seconds, reset the SOS button
     setTimeout(() => {
       console.log('SOS auto-resetting after 10 seconds');
       setSosActivated(false);
+      // Stop any ongoing vibration when resetting
+      Vibration.cancel();
     }, 10000);
   };
 
@@ -177,6 +197,8 @@ const HomeScreen: React.FC = () => {
       if (sosHoldTimeout.current) {
         clearTimeout(sosHoldTimeout.current);
       }
+      // Make sure to cancel any vibrations when component unmounts
+      Vibration.cancel();
     };
   }, []);
 
