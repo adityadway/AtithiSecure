@@ -9,6 +9,8 @@ import {
   Dimensions,
   TextInput,
   Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,7 +20,7 @@ import MapIcon from '../../assets/images/map.svg';
 import MeshIcon from '../../assets/images/mesh.svg';
 import TranslateIcon from '../../assets/images/translate.svg';
 import NotificationIcon from '../../assets/notification.svg';
-import ProfileIcon from '../../assets/profile.svg';
+import ProfileIcon from '../../assets/images/profile.svg';
 import CallIcon from '../../assets/call.svg';
 import DropIcon from '../../assets/images/drop.svg';
 import SearchIcon from '../../assets/images/search.svg';
@@ -29,13 +31,138 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'H
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  
+  // SOS button animation states
+  const [sosHoldStart, setSosHoldStart] = React.useState<number | null>(null);
+  const [sosActivated, setSosActivated] = React.useState(false);
+  const [sosProgress, setSosProgress] = React.useState(0);
+  const sosProgressAnim = React.useRef(new Animated.Value(0)).current;
+  const sosScale = React.useRef(new Animated.Value(1)).current;
+  const sosRipple = React.useRef(new Animated.Value(0)).current;
+  const sosHoldTimeout = React.useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle SOS animation
+  React.useEffect(() => {
+    if (sosActivated) {
+      // Trigger success animation
+      Animated.sequence([
+        Animated.timing(sosScale, {
+          toValue: 1.2,
+          duration: 300,
+          easing: Easing.bounce,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sosScale, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.bounce,
+          useNativeDriver: true,
+        })
+      ]).start(() => {
+        // Start pulsing animation after success
+        startPulsingAnimation();
+      });
+    } else {
+      // Reset animations when not active
+      sosScale.setValue(1);
+      sosRipple.setValue(0);
+      sosProgressAnim.setValue(0);
+    }
+  }, [sosActivated]);
+
+  const startPulsingAnimation = () => {
+    // Only start pulsing if still activated
+    if (sosActivated) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(sosRipple, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(sosRipple, {
+            toValue: 0,
+            duration: 1000,
+            easing: Easing.in(Easing.ease),
+            useNativeDriver: true,
+          })
+        ])
+      ).start();
+    }
+  };
+
+  // Start SOS hold timer
+  const handleSOSPressIn = () => {
+    if (sosActivated) return; // Don't restart if already activated
+    
+    setSosHoldStart(Date.now());
+    setSosProgress(0);
+    
+    // Reset and start the progress animation
+    sosProgressAnim.setValue(0);
+    Animated.timing(sosProgressAnim, {
+      toValue: 100,
+      duration: 3000, // 3 seconds to activate
+      useNativeDriver: false,
+    }).start();
+    
+    // Set timeout for activation after 3 seconds
+    sosHoldTimeout.current = setTimeout(() => {
+      activateSOS();
+    }, 3000);
+  };
+  
+  // Cancel SOS if released too early
+  const handleSOSPressOut = () => {
+    if (sosActivated) return; // Don't cancel if already activated
+    
+    // Clear the timeout
+    if (sosHoldTimeout.current) {
+      clearTimeout(sosHoldTimeout.current);
+      sosHoldTimeout.current = null;
+    }
+    
+    // Reset progress
+    setSosProgress(0);
+    setSosHoldStart(null);
+    
+    // Stop the animation
+    sosProgressAnim.stopAnimation();
+    sosProgressAnim.setValue(0);
+  };
+  
+  // Activate SOS after successful hold
+  const activateSOS = () => {
+    setSosActivated(true);
+    console.log('SOS pressed - Emergency alert triggered!');
+    
+    // After 10 seconds, reset the SOS button
+    setTimeout(() => {
+      setSosActivated(false);
+    }, 10000);
+  };
+
+  // Handle animation value changes for progress display
+  React.useEffect(() => {
+    const progressListener = sosProgressAnim.addListener(({value}) => {
+      setSosProgress(value);
+    });
+    
+    return () => {
+      sosProgressAnim.removeListener(progressListener);
+      if (sosHoldTimeout.current) {
+        clearTimeout(sosHoldTimeout.current);
+      }
+    };
+  }, []);
 
   const handleLogout = () => {
     navigation.navigate('Login');
   };
 
   const handleSOS = () => {
-    console.log('SOS pressed - Emergency alert triggered!');
+    // This is now handled by the hold gesture
   };
 
   const handleMapPress = () => {
@@ -283,16 +410,67 @@ const HomeScreen: React.FC = () => {
       {/* Floating 3D SOS Button */}
       <TouchableOpacity 
         style={styles.floatingSosButton} 
-        onPress={handleSOS}
         activeOpacity={0.7}
+        onPressIn={handleSOSPressIn}
+        onPressOut={handleSOSPressOut}
       >
-        <View style={styles.sosOuterCircle}>
-          <View style={styles.sosMiddleCircle}>
-            <View style={styles.sosInnerCircle}>
-              <Text style={styles.sosText}>SOS</Text>
-            </View>
-          </View>
-        </View>
+        {/* Ripple animation */}
+        {sosActivated && (
+          <Animated.View 
+            style={[
+              styles.sosRipple,
+              {
+                opacity: sosRipple.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 0]
+                }),
+                transform: [
+                  {
+                    scale: sosRipple.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 1.8]
+                    })
+                  }
+                ]
+              }
+            ]}
+          />
+        )}
+        
+        <Animated.View style={[styles.sosOuterCircle, {
+          transform: [{ scale: sosScale }],
+        }]}>
+          <Animated.View style={[styles.sosMiddleCircle, {
+            transform: [{ scale: sosScale }],
+          }]}>
+            <Animated.View style={[styles.sosInnerCircle, {
+              transform: [{ scale: sosScale }],
+            }]}>
+              {sosActivated ? (
+                <Text style={[styles.sosText, styles.sosActiveText]}>SOS</Text>
+              ) : (
+                <>
+                  <Text style={styles.sosText}>SOS</Text>
+                  {sosProgress > 0 && sosProgress < 100 && (
+                    <View style={styles.progressContainer}>
+                      <Animated.View 
+                        style={[
+                          styles.progressBar,
+                          {
+                            width: sosProgressAnim.interpolate({
+                              inputRange: [0, 100],
+                              outputRange: ['0%', '100%']
+                            })
+                          }
+                        ]}
+                      />
+                    </View>
+                  )}
+                </>
+              )}
+            </Animated.View>
+          </Animated.View>
+        </Animated.View>
       </TouchableOpacity>
     </View>
   );
@@ -724,6 +902,29 @@ const styles = StyleSheet.create({
   },
   activeNavText: {
     color: 'rgba(251, 131, 40, 1)',
+  },
+  progressContainer: {
+    position: 'absolute',
+    bottom: -8,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 2,
+    overflow: 'hidden',
+    width: '80%',
+    alignSelf: 'center',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: 2,
+  },
+  sosActiveText: {
+    color: 'rgba(255, 255, 255, 1)',
+    textShadowColor: 'rgba(0, 0, 0, 0.6)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 3,
   },
 });
 
